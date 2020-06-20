@@ -9,5 +9,11 @@ console.log('Background.js file loaded');
 
 browser.runtime.onMessage.addListener(function (message) {
   console.log(message);
+  window.chrome.runtime.sendMessage({
+    type: 'lololol', 
+    data: [{
+      product: 'switch'
+    }]
+  });
 });
 

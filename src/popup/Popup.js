@@ -15,8 +15,7 @@ const Login = ({
     e.preventDefault();
     login({ email: emailInput, password: passwordInput })
       .then(checkStatus)
-      .then(console.log);
-    onReceiveToken(null);
+      .then(({ user: { token }}) => onReceiveToken(token));
   };
 
   console.log('got here');

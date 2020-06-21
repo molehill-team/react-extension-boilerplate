@@ -179,15 +179,6 @@ function scrape_data(prod_id, site_name) {
   // reverse array to put most detailed category first
   bread_crumbs.reverse();
 
-  // log to console --------------------------------------------------------------------------------------------------
-  console.log('Product ID = ' + prod_id);
-  console.log('Title = ' + product_title);
-  console.log('Category = ' + bread_crumbs.join(', '));
-  console.log('Dimension Units = ' + dimens_unit);
-  console.log('Dimensions Array = ' + dimens_array);
-  console.log('Weight Units = ' + weight_unit);
-  console.log('Weight Value = ' + weight_float);
-
   //  create and send http request to save data to DB ----------------------------------------------------------------
   const dimensionsIsAllZero = dimens_array.every(z => z === 0);
   createProduct({

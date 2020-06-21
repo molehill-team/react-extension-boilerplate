@@ -11,7 +11,7 @@ export const createProduct = (payload, token) => {
 
   return fetch(`${API_URL}/api/products`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ product: payload }),
     headers,
   });
 };

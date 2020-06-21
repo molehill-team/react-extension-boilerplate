@@ -1,37 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import './Popup.css';
-import { login } from '../shared/api';
-import { checkStatus } from '../shared/utils';
+import Login from './auth/Login';
+import Signup from './auth/Signup';
 
 
-const Login = ({
-  onReceiveToken=() => {},
-}) => {
-
-  const [emailInput, setEmailInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
-
-  const onSubmit = (e) => {
-    e.preventDefault();
-    login({ email: emailInput, password: passwordInput })
-      .then(checkStatus)
-      .then(({ user: { token }}) => onReceiveToken(token));
-  };
-
-  return (
-    <form onSubmit={onSubmit}>
-      <label htmlFor="login-email--input">email</label>
-      <input type="email" id="login-email--input" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
-      <label htmlFor="login-password--input">password</label>
-      <input type="password" id="login-password--input" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
-      <button type="submit" onClick={onSubmit}>Login</button>
-    </form>
-  );
+const AuthFlows = {
+  LOGIN: 'LOGIN',
+  SIGNUP: 'SIGNUP'
 };
 
 const Popup = () => {
   const [products, setProducts] = useState([]);
   const [userToken, setUserToken] = useState(null);
+  const [authFlow, setAuthFlow] = useState(AuthFlows.LOGIN);
 
   useEffect(() => {
     window.chrome.runtime.onMessage.addListener((message) => {
@@ -43,7 +24,8 @@ const Popup = () => {
   }, []);
 
   if (!userToken) {
-    return <Login onReceiveToken={(t) => setUserToken(t)} />;
+    const Comp = authFlow === AuthFlows.LOGIN ? Login : Signup;
+    return <Comp onReceiveToken={(t) => setUserToken(t)} onToggleFlow={() => authFlow === AuthFlows.LOGIN ? setAuthFlow(AuthFlows.SIGNUP) : setAuthFlow(AuthFlows.LOGIN)}/>;
   }
 
   return (

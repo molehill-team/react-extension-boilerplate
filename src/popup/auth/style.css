@@ -1,0 +1,11 @@
+
+
+.molehill-login--form {
+  width: 400px;
+  padding: 32px;
+}
+
+.molehill-auth-change-flow {
+  color: blue;
+  cursor: pointer;
+}

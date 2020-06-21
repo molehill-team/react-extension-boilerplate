@@ -23,3 +23,11 @@ export const login = payload => {
     headers: { 'Content-Type': 'application/json' }
   });
 };
+
+export const signup = payload => {
+  return fetch(`${API_URL}/api/users`, {
+    method: 'POST',
+    body: JSON.stringify({ user: payload }),
+    headers: { 'Content-Type': 'application/json' }
+  });
+};

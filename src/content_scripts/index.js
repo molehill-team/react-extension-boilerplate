@@ -194,6 +194,12 @@ function scrape_data(prod_id, site_name) {
   }, undefined);
 }
 
+const getProductIds = () => {
+  return [...document.querySelectorAll('input[type="hidden"]')]
+    .filter(d => d.name.includes('Asin'))
+    .map(d => d.value);
+};
+
 function add_molehill_button() {
   const submit_buttons = [document.getElementById('placeYourOrder')];
   for (let i = 0; i < submit_buttons.length; i++) {
@@ -214,7 +220,8 @@ function add_molehill_button() {
     submitButton.parentNode.insertBefore(newdiv, submitButton.nextSibling);
     submitButton.addEventListener('click', () => {
       if (checkbox.checked) {
-        window.open(`${APP_URL}/offset-order`, '_blank');
+        const productIds = getProductIds().join(',');
+        window.open(`${APP_URL}/offset-order?ids=${productIds}`, '_blank');
       }
     });
   }

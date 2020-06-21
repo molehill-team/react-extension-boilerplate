@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import './Popup.css';
 import Login from './auth/Login';
 import Signup from './auth/Signup';
+import { connect } from 'react-redux';
+import { setToken } from '../store/auth/actions';
 
 
 const AuthFlows = {
@@ -9,10 +11,13 @@ const AuthFlows = {
   SIGNUP: 'SIGNUP'
 };
 
-const Popup = () => {
+const Popup = ({
+  token,
+  receiveToken,
+}) => {
   const [products, setProducts] = useState([]);
-  const [userToken, setUserToken] = useState(null);
   const [authFlow, setAuthFlow] = useState(AuthFlows.LOGIN);
+  const [userToken, setUserToken] = useState(token);
 
   useEffect(() => {
     window.chrome.runtime.onMessage.addListener((message) => {
@@ -23,9 +28,14 @@ const Popup = () => {
     });
   }, []);
 
+  const onReceiveToken = t => {
+    setUserToken(t);
+    receiveToken(t);
+  };
+
   if (!userToken) {
     const Comp = authFlow === AuthFlows.LOGIN ? Login : Signup;
-    return <Comp onReceiveToken={(t) => setUserToken(t)} onToggleFlow={() => authFlow === AuthFlows.LOGIN ? setAuthFlow(AuthFlows.SIGNUP) : setAuthFlow(AuthFlows.LOGIN)}/>;
+    return <Comp onReceiveToken={onReceiveToken} onToggleFlow={() => authFlow === AuthFlows.LOGIN ? setAuthFlow(AuthFlows.SIGNUP) : setAuthFlow(AuthFlows.LOGIN)}/>;
   }
 
   return (
@@ -35,5 +45,12 @@ const Popup = () => {
   );
 };
 
+const mapStateToProps = state => ({
+  token: state.auth.token,
+});
 
-export default Popup;
+const mapDispatchToProps = dispatch => ({
+  receiveToken: t => dispatch(setToken(t)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Popup);

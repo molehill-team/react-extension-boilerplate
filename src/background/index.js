@@ -1,4 +1,8 @@
 /* eslint-disable no-undef */
+import { wrapStore } from 'webext-redux';
+import store from '../store';
+import { DEBUG } from '../shared/resources';
+
 console.log('Background.js file loaded');
 
 /* const defaultUninstallURL = () => {
@@ -17,3 +21,9 @@ browser.runtime.onMessage.addListener(function (message) {
   });
 });
 
+if (DEBUG) {
+  window.store = store;
+}
+
+
+wrapStore(store);

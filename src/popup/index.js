@@ -1,10 +1,20 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import * as browser from 'webextension-polyfill';
+import { render } from 'react-dom';
 import './index.css';
 import Popup from './Popup';
 
-browser.runtime.sendMessage({ data: 'hello' });
+import { Provider } from 'react-redux';
+import { Store } from 'webext-redux';
 
-ReactDOM.render(<Popup text="Ext boilerplate" />, document.getElementById('root'));
+const store = new Store();
 
+// wait for the store to connect to the background page
+store.ready().then(() => {
+  // The store implements the same interface as Redux's store
+  // so you can use tools like `react-redux` no problem!
+  render(
+    <Provider store={store}>
+      <Popup text="Ext boilerplate" />
+    </Provider>
+    , document.getElementById('root'));
+});

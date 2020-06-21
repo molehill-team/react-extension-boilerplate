@@ -1,4 +1,4 @@
-const { createProduct } = require('./api');
+const { createProduct } = require('../shared/api');
 
 if (window.location.href.includes('checkout')) {
   console.log('checkedouted');
@@ -98,19 +98,17 @@ function scrape_data(prod_id, site_name) {
   // initialize some variables
   let prod_dimens, dimens_text, dimens_unit, dimens_array, prod_weight, weight_text, weight_unit, weight_float;
 
-  let product_title, div_bread_crumb, list_bread_crumb, table_name;
+  let product_title, div_bread_crumb, list_bread_crumb;
   switch (site_name) {
     case 'amazon':
       product_title = document.getElementById('productTitle').innerText;
       div_bread_crumb = document.getElementById('wayfinding-breadcrumbs_feature_div');
       list_bread_crumb = div_bread_crumb.getElementsByTagName('ul')[0];
-      table_name = 'amazon_test';
       break;
     case 'walmart':
       product_title = document.getElementsByClassName('prod-ProductTitle')[0].innerText;
       div_bread_crumb = document.getElementsByClassName('breadcrumb-list')[0];
       list_bread_crumb = div_bread_crumb;
-      table_name = 'walmart_test';
       break;
   }
 

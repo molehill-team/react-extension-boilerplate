@@ -11,7 +11,7 @@ export const createProduct = (payload, token) => {
 
   return fetch(`${API_URL}/api/products`, {
     method: 'POST',
-    payload: JSON.stringify(payload),
+    body: JSON.stringify(payload),
     headers,
   });
 };
@@ -19,7 +19,7 @@ export const createProduct = (payload, token) => {
 export const login = payload => {
   return fetch(`${API_URL}/api/users/login`, {
     method: 'POST',
-    payload: JSON.stringify({ user: payload }),
+    body: JSON.stringify({ user: payload }),
     headers: { 'Content-Type': 'application/json' }
   });
 };

@@ -15,7 +15,11 @@ const Login = ({
     e.preventDefault();
     login({ email: emailInput, password: passwordInput })
       .then(checkStatus)
+      .then(console.log);
+    onReceiveToken(null);
   };
+
+  console.log('got here');
 
   return (
     <form onSubmit={onSubmit}>
@@ -25,8 +29,8 @@ const Login = ({
       <input type="password" id="login-password--input" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
       <button type="submit" onClick={onSubmit}>Login</button>
     </form>
-  )
-}
+  );
+};
 
 const Popup = () => {
   const [products, setProducts] = useState([]);
@@ -43,8 +47,10 @@ const Popup = () => {
     console.log('in useEffect');
   }, []);
 
+  console.log('do we get here?', userToken);
+
   if (!userToken) {
-    return <Login onReceiveToken={(t) => setUserToken(t)} />
+    return <Login onReceiveToken={(t) => setUserToken(t)} />;
   }
 
   return (

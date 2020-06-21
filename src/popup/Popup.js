@@ -18,8 +18,6 @@ const Login = ({
       .then(({ user: { token }}) => onReceiveToken(token));
   };
 
-  console.log('got here');
-
   return (
     <form onSubmit={onSubmit}>
       <label htmlFor="login-email--input">email</label>
@@ -42,11 +40,7 @@ const Popup = () => {
         setProducts(message.data);
       }
     });
-
-    console.log('in useEffect');
   }, []);
-
-  console.log('do we get here?', userToken);
 
   if (!userToken) {
     return <Login onReceiveToken={(t) => setUserToken(t)} />;

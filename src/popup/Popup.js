@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import './Popup.css';
 import { login } from '../shared/api';
 import { checkStatus } from '../shared/utils';
+import { connect } from 'react-redux';
+import { setToken } from '../store/auth/actions';
 
 
 const Login = ({
@@ -29,9 +31,12 @@ const Login = ({
   );
 };
 
-const Popup = () => {
+const Popup = ({
+  token,
+  receiveToken,
+}) => {
   const [products, setProducts] = useState([]);
-  const [userToken, setUserToken] = useState(null);
+  const [userToken, setUserToken] = useState(token);
 
   useEffect(() => {
     window.chrome.runtime.onMessage.addListener((message) => {
@@ -42,8 +47,13 @@ const Popup = () => {
     });
   }, []);
 
+  const onReceiveToken = t => {
+    setUserToken(t);
+    receiveToken(t);
+  };
+
   if (!userToken) {
-    return <Login onReceiveToken={(t) => setUserToken(t)} />;
+    return <Login onReceiveToken={onReceiveToken} />;
   }
 
   return (
@@ -53,5 +63,12 @@ const Popup = () => {
   );
 };
 
+const mapStateToProps = state => ({
+  token: state.auth.token,
+});
 
-export default Popup;
+const mapDispatchToProps = dispatch => ({
+  receiveToken: t => dispatch(setToken(t)),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Popup);

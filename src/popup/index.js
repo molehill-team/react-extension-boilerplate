@@ -1,10 +1,10 @@
 import React from 'react';
-import {render} from 'react-dom';
+import { render } from 'react-dom';
 import './index.css';
 import Popup from './Popup';
 
-import {Provider} from 'react-redux';
-import {Store} from 'webext-redux';
+import { Provider } from 'react-redux';
+import { Store } from 'webext-redux';
 
 const store = new Store();
 
@@ -16,5 +16,5 @@ store.ready().then(() => {
     <Provider store={store}>
       <Popup text="Ext boilerplate" />
     </Provider>
-    , document.getElementById('app'));
+    , document.getElementById('root'));
 });

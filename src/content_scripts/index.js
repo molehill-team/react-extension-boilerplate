@@ -1,4 +1,5 @@
 const { createProduct } = require('../shared/api');
+const { APP_URL } = require('../shared/resources');
 
 if (window.location.href.includes('checkout')) {
   console.log('checkedouted');
@@ -190,47 +191,32 @@ function scrape_data(prod_id, site_name) {
     weight_g: weight_float || undefined,
     source: window.location.hostname,
     originLocation: undefined,
-  }, undefined).then(display_offset);
-}
-
-function set_offset_price(offset_div, response_text) {
-  let offset_price = parseFloat(response_text);
-  offset_div.innerText = '+ $' + offset_price.toString() + ' to carbon offset';
-}
-
-function display_offset() {
-  // search for purchase buttons and display offset cost below
-  let price_element = document.getElementById('priceInsideBuyBox_feature_div');
-  let offset_div = document.createElement('div');
-  price_element.parentElement.insertBefore(offset_div, price_element.nextElementSibling);
-
-  let offset_req = new XMLHttpRequest(), server_url, request_url;
-  server_url = 'http://127.0.0.1/molehill/offset.php';
-  request_url = server_url + '?' +
-      'ASIN=' + asin;
-  console.log(request_url);
-  offset_req.open('GET', request_url, true);
-  offset_req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-  offset_req.onreadystatechange = function() {
-    if (offset_req.readyState === 4) {
-      set_offset_price(offset_div, offset_req.responseText);
-    }
-  };
-  offset_req.send(null);
+  }, undefined);
 }
 
 function add_molehill_button() {
-  let submit_buttons = [document.getElementById('submitOrderButtonId'),
-    document.getElementById('bottomSubmitOrderButtonId')];
+  const submit_buttons = [document.getElementById('placeYourOrder')];
   for (let i = 0; i < submit_buttons.length; i++) {
-    let new_button = document.createElement('button');
-    new_button.innerText = 'Molehill Page';
-    new_button.style.cssText = 'width: 100%; padding: 5px; background-color: lightgreen; margin-top: 5px; ' +
-        'border-radius: 5px; border-color: silver';
-    new_button.addEventListener('click', function() {
-      window.open('https://www.google.com');
+    const submitButton = submit_buttons[i];
+    if (!submitButton) {
+      continue;
+    }
+    const newdiv = document.createElement('div');
+    const checkbox = document.createElement('input');
+    checkbox.checked = true;
+    checkbox.type = 'checkbox';
+    checkbox.style = 'margin-right: 6px;';
+    const cta = document.createElement('span');
+    cta.innerText = 'open a tab to Molehill when I place my order';
+    newdiv.appendChild(checkbox);
+    newdiv.appendChild(cta);
+    newdiv.style = 'display: flex; align-items: center; font-size: 11px; margin-top: 6px;';
+    submitButton.parentNode.insertBefore(newdiv, submitButton.nextSibling);
+    submitButton.addEventListener('click', () => {
+      if (checkbox.checked) {
+        window.open(`${APP_URL}/offset-order`, '_blank');
+      }
     });
-    submit_buttons[i].parentNode.insertBefore(new_button, submit_buttons[i].nextSibling);
   }
 }
 
@@ -243,7 +229,6 @@ if (asin_matches) {
   asin = null;
 }
 
-console.log('got here ');
 // if amazon product page, scrape product data and send to server
 if (window.location.href.includes('amazon.com') && asin) {
   scrape_data(asin, 'amazon');

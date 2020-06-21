@@ -1,16 +1,3 @@
-const { createProduct } = require('./api');
-
-if (window.location.href.includes('checkout')) {
-  console.log('checkedouted');
-  window.chrome.runtime.sendMessage({
-    type: 'CHECKOUT_INITIATED',
-    data: [{
-      product: 'switch'
-    }]
-  });
-}
-console.log(window.location.href);
-
 function getDirectLastText(ele) {
   let txt = null;
   [].forEach.call(ele.childNodes, function (v) {
@@ -191,17 +178,28 @@ function scrape_data(prod_id, site_name) {
   console.log('Weight Value = ' + weight_float);
 
   //  create and send http request to save data to DB ----------------------------------------------------------------
-  const dimensionsIsAllZero = dimens_array.every(z => z === 0);
-  createProduct({
-    name: product_title.replace(/ /g, '_'),
-    category: bread_crumbs.join(',').replace(/ /g, '_'),
-    productId: prod_id,
-    sourceURL: window.location.href,
-    dimensions_mm: dimensionsIsAllZero ? undefined : dimens_array,
-    weight_g: weight_float || undefined,
-    source: window.location.hostname,
-    originLocation: undefined,
-  }, undefined).then(display_offset);
+  let scrape_req = new XMLHttpRequest(), server_url, request_url;
+  server_url = 'http://127.0.0.1/molehill/scrape.php';
+  request_url = server_url + '?' +
+      'Table=' + table_name + '&' +
+      'ProdID=' + prod_id + '&' +
+      'Title=' + product_title.replace(/ /g, '_') + '&' +
+      'Category=' + bread_crumbs.join(',').replace(/ /g, '_') + '&' +
+      'D_Units=' + dimens_unit + '&' +
+      'D_Values=' + dimens_array.join(',') + '&' +
+      'W_Units=' + weight_unit + '&' +
+      'W_Value=' + weight_float + '&' +
+      'url=' + window.location.href;
+  console.log(request_url);
+  scrape_req.open('GET', request_url);
+  scrape_req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  scrape_req.onreadystatechange = function() {
+    if (scrape_req.readyState === 4) {
+      console.log(scrape_req.responseText);
+      display_offset();
+    }
+  };
+  scrape_req.send();
 }
 
 function set_offset_price(offset_div, response_text) {

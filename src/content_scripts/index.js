@@ -28,7 +28,7 @@ function convert_units_to_mm_or_g(unit, value) {
     'millimeters': 1, 'mm': 1, 'millimeter': 1, 'mms': 1,
     'centimeters': 10, 'cm': 10, 'centimeter': 10, 'cms': 10,
     'meters': 1000, 'm': 1000, 'meter': 1000, 'ms': 1000,
-    'pounds': 453.592, 'lbs': 453.592, 'lb': 453.592, 'pound': 453.592,
+    'pounds': 453.592, 'lbs': 453.592, 'lb': 453.592, 'pound': 453.592, 'lb.': 453.592,
     'ounces': 453.592/16, 'oz': 453.592/16, 'ozs': 453.592/16, 'ounce': 453.592/16,
     'grams': 1, 'g': 1, 'gram': 1, 'gs': 1,
     'kilograms': 1000, 'kg': 1000, 'kilogram': 1000, 'kgs': 1000};
@@ -40,14 +40,22 @@ function convert_units_to_mm_or_g(unit, value) {
   }
 }
 
-function find_spec_element(match_type) {
+function find_spec_element(match_type, site_name) {
   let match_strings = [];
 
   // set an array of strings to match to depending on if we're looking for dimensions or weight
   if (match_type === 'dimension') {
-    match_strings = ['Product Dimensions', 'Package Dimensions', 'Size', 'Assembled Product Dimensions (L x W x H)'];
+    if (site_name === 'wayfair') {
+      match_strings = ['Overall'];
+    } else {
+      match_strings = ['Product Dimensions', 'Package Dimensions', 'Size', 'Assembled Product Dimensions (L x W x H)'];  
+    }
   } else if (match_type === 'weight') {
-    match_strings = ['Item Weight', 'Weight', 'Assembled Product Weight'];
+    if (site_name === 'wayfair') {
+      match_strings = ['Overall Product Weight'];
+    } else {
+      match_strings = ['Item Weight', 'Weight', 'Assembled Product Weight'];
+    }
   } else {
     return false;
   }
@@ -56,10 +64,19 @@ function find_spec_element(match_type) {
   let match_elements = [];
   let text_element;
 
+  let test = document.getElementsByClassName('ProductWeightsDimensions-descriptionListItem');
+  console.log(test.length);
+  for (let i = 0; i < test.length; i++) {
+    console.log(i);
+    // console.log(test[i]);
+  }
+  console.log(test);
+
   // find all elements in page that match the strings we're searching for
   for (let i = 0; i < all_elements.length; i++) {
     let element_text = getDirectLastText(all_elements[i]);
     if (element_text) {
+      // console.log(element_text);
       if (match_strings.includes(element_text.trim())) {
         match_elements.push(all_elements[i]);
       }
@@ -76,6 +93,7 @@ function find_spec_element(match_type) {
     if (!text_element) {
       text_element =  match_elements[0];
     }
+    console.log(text_element);
 
     // assuming element is part of a table, find the nearest parent element that is <td>, <th>, or <tr>
     return get_nearest_table_parent(text_element).nextElementSibling;
@@ -87,7 +105,7 @@ function find_spec_element(match_type) {
 }
 
 function get_nearest_table_parent(element) {
-  if (element.tagName.match(/T[A-Z]/) && element.tagName.length === 2) {
+  if (element.tagName.match(/[DdTt][A-Za-z]/) && element.tagName.length === 2) {
     return element;
   } else {
     return get_nearest_table_parent(element.parentElement);
@@ -111,10 +129,16 @@ function scrape_data(prod_id, site_name) {
       div_bread_crumb = document.getElementsByClassName('breadcrumb-list')[0];
       list_bread_crumb = div_bread_crumb;
       break;
+    case 'wayfair':
+      product_title = document.getElementsByClassName('pl-Heading--pageTitle')[0].innerText;
+      div_bread_crumb = document.getElementsByClassName('Breadcrumbs-list')[0];
+      list_bread_crumb = div_bread_crumb;
+      break;
   }
 
-  // find product weight ---------------------------------------------------------------------------------------------
-  prod_dimens = find_spec_element('dimension');
+  // find product dimension ---------------------------------------------------------------------------------------------
+  prod_dimens = find_spec_element('dimension', site_name);
+  console.log(prod_dimens);
   if (prod_dimens) {
     dimens_text = prod_dimens.innerText;
 
@@ -144,7 +168,7 @@ function scrape_data(prod_id, site_name) {
   }
 
   // find product weight ---------------------------------------------------------------------------------------------
-  prod_weight = find_spec_element('weight');
+  prod_weight = find_spec_element('weight', site_name);
   if (prod_weight) {
     weight_text = prod_weight.innerText;
 
@@ -173,15 +197,30 @@ function scrape_data(prod_id, site_name) {
         let bread_crumb_text = list_bread_crumb.children[i].innerText;
         if (bread_crumb_text.trim().startsWith('/')) {
           bread_crumb_text = bread_crumb_text.slice(1, );
+        } else if (bread_crumb_text.trim().endsWith('/')) {
+          bread_crumb_text = bread_crumb_text.slice(0, -1);
         }
         bread_crumbs.push(bread_crumb_text);
       }}}
+  if (bread_crumbs[bread_crumbs.length-1].includes('SKU:')) {
+    bread_crumbs = bread_crumbs.slice(0, -1);
+  }
 
   // reverse array to put most detailed category first
   bread_crumbs.reverse();
 
   //  create and send http request to save data to DB ----------------------------------------------------------------
   const dimensionsIsAllZero = dimens_array.every(z => z === 0);
+  console.log({
+    name: product_title.replace(/ /g, '_'),
+    category: bread_crumbs.join(',').replace(/ /g, '_'),
+    productId: prod_id,
+    sourceURL: window.location.href,
+    dimensions_mm: dimensionsIsAllZero ? undefined : dimens_array,
+    weight_g: weight_float || undefined,
+    source: window.location.hostname,
+    originLocation: undefined,
+  });
   createProduct({
     name: product_title.replace(/ /g, '_'),
     category: bread_crumbs.join(',').replace(/ /g, '_'),
@@ -248,4 +287,19 @@ if (window.location.href.includes('amazon.com') && asin) {
 if (window.location.href.includes('walmart.com/ip')) {
   let walmart_id = getDirectLastText(document.getElementsByClassName('wm-item-number')[0]);
   scrape_data(walmart_id, 'walmart');
+}
+
+if (window.location.href.includes('wayfair.com')) {
+  let product_page;
+  try {
+    product_page = document.getElementsByClassName('Breadcrumbs')[0].innerText.includes('SKU');
+  } catch {
+    product_page = false;
+  } 
+  if (product_page) {
+    // get wayfair SKU
+    let wayfair_sku_text = document.getElementsByClassName('Breadcrumbs-item')[0].innerText;
+    let wayfair_sku = wayfair_sku_text.slice(wayfair_sku_text.indexOf(' ') + 1, );
+    document.addEventListener('load', scrape_data(wayfair_sku, 'wayfair'));
+  }
 }

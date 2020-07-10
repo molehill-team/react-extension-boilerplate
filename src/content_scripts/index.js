@@ -56,6 +56,8 @@ function find_spec_element(match_type, site_name) {
     } else {
       match_strings = ['Item Weight', 'Weight', 'Assembled Product Weight'];
     }
+  } else if (match_type === 'origin') {
+    match_strings = ['Country of Origin'];
   } else {
     return false;
   }
@@ -63,14 +65,6 @@ function find_spec_element(match_type, site_name) {
   let all_elements = document.getElementsByTagName('*');
   let match_elements = [];
   let text_element;
-
-  let test = document.getElementsByClassName('ProductWeightsDimensions-descriptionListItem');
-  console.log(test.length);
-  for (let i = 0; i < test.length; i++) {
-    console.log(i);
-    // console.log(test[i]);
-  }
-  console.log(test);
 
   // find all elements in page that match the strings we're searching for
   for (let i = 0; i < all_elements.length; i++) {
@@ -93,7 +87,6 @@ function find_spec_element(match_type, site_name) {
     if (!text_element) {
       text_element =  match_elements[0];
     }
-    console.log(text_element);
 
     // assuming element is part of a table, find the nearest parent element that is <td>, <th>, or <tr>
     return get_nearest_table_parent(text_element).nextElementSibling;
@@ -138,7 +131,6 @@ function scrape_data(prod_id, site_name) {
 
   // find product dimension ---------------------------------------------------------------------------------------------
   prod_dimens = find_spec_element('dimension', site_name);
-  console.log(prod_dimens);
   if (prod_dimens) {
     dimens_text = prod_dimens.innerText;
 
@@ -148,9 +140,10 @@ function scrape_data(prod_id, site_name) {
     }
 
     // if " is used for inches, set units manually and remove all " from string (unicode \u201D used for ")
-    if (dimens_text.includes('\u201D')) {
+    if (dimens_text.includes('\u201D') || dimens_text.includes('\'\'')) {
       dimens_unit = 'inches';
       dimens_text = dimens_text.replace(/\u201D/g, '');
+      dimens_text = dimens_text.replace(/'/g, '');
     } else {
       dimens_unit = dimens_text.slice(dimens_text.lastIndexOf(' '), ).trim();
       dimens_text = dimens_text.slice(0, dimens_text.lastIndexOf(' ')).trim();
@@ -163,7 +156,7 @@ function scrape_data(prod_id, site_name) {
       dimens_array[i] = convert_units_to_mm_or_g(dimens_unit.toLowerCase(), parseFloat(dimens_array[i]));
     }
   } else {
-    dimens_unit = 'None';
+    dimens_unit = undefined;
     dimens_array = [0, 0, 0];
   }
 
@@ -184,7 +177,7 @@ function scrape_data(prod_id, site_name) {
     weight_float = convert_units_to_mm_or_g(weight_unit.toLowerCase(),
       parseFloat(weight_text.slice(0, weight_text.lastIndexOf(' '))));
   } else {
-    weight_unit = 'None';
+    weight_unit = undefined;
     weight_float = 0;
   }
 
@@ -209,18 +202,17 @@ function scrape_data(prod_id, site_name) {
   // reverse array to put most detailed category first
   bread_crumbs.reverse();
 
+  // get product origin --------------------------------------------------------------------------------
+  let prod_origin, origin_text;
+  prod_origin = find_spec_element('origin', site_name);
+  if (prod_origin) {
+    origin_text = prod_origin.innerText;
+  } else {
+    origin_text = undefined;
+  }
+
   //  create and send http request to save data to DB ----------------------------------------------------------------
   const dimensionsIsAllZero = dimens_array.every(z => z === 0);
-  console.log({
-    name: product_title.replace(/ /g, '_'),
-    category: bread_crumbs.join(',').replace(/ /g, '_'),
-    productId: prod_id,
-    sourceURL: window.location.href,
-    dimensions_mm: dimensionsIsAllZero ? undefined : dimens_array,
-    weight_g: weight_float || undefined,
-    source: window.location.hostname,
-    originLocation: undefined,
-  });
   createProduct({
     name: product_title.replace(/ /g, '_'),
     category: bread_crumbs.join(',').replace(/ /g, '_'),
@@ -229,7 +221,7 @@ function scrape_data(prod_id, site_name) {
     dimensions_mm: dimensionsIsAllZero ? undefined : dimens_array,
     weight_g: weight_float || undefined,
     source: window.location.hostname,
-    originLocation: undefined,
+    originLocation: origin_text,
   }, undefined);
 }
 
@@ -300,6 +292,25 @@ if (window.location.href.includes('wayfair.com')) {
     // get wayfair SKU
     let wayfair_sku_text = document.getElementsByClassName('Breadcrumbs-item')[0].innerText;
     let wayfair_sku = wayfair_sku_text.slice(wayfair_sku_text.indexOf(' ') + 1, );
-    document.addEventListener('load', scrape_data(wayfair_sku, 'wayfair'));
+
+    // create observer to find when page is fully loaded
+    let observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (!mutation.addedNodes) return;
+        for (let i=0; i < mutation.addedNodes.length; i++) {
+          if (mutation.addedNodes[i].id === 'dpi') {
+            scrape_data(wayfair_sku, 'wayfair');
+          }
+        }
+      });
+    });
+
+    // start observer
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: false,
+      characterData: false
+    });
   }
 }

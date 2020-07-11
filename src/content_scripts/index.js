@@ -57,7 +57,7 @@ function find_spec_element(match_type, site_name) {
       match_strings = ['Item Weight', 'Weight', 'Assembled Product Weight'];
     }
   } else if (match_type === 'origin') {
-    match_strings = ['Country of Origin'];
+    match_strings = ['Country of Origin', 'Country of Origin - Additional Details'];
   } else {
     return false;
   }
@@ -150,6 +150,7 @@ function scrape_data(prod_id, site_name) {
     }
 
     // create array from dimension values and use units to convert to millimeters
+    dimens_text = dimens_text.replace(/[A-WY-Za-wy-z]/g, '');
     dimens_array = dimens_text.split('x');
 
     for (let i = 0; i < dimens_array.length; i++) {
@@ -206,7 +207,7 @@ function scrape_data(prod_id, site_name) {
   let prod_origin, origin_text;
   prod_origin = find_spec_element('origin', site_name);
   if (prod_origin) {
-    origin_text = prod_origin.innerText;
+    origin_text = prod_origin.innerText.trim();
   } else {
     origin_text = undefined;
   }
@@ -281,6 +282,7 @@ if (window.location.href.includes('walmart.com/ip')) {
   scrape_data(walmart_id, 'walmart');
 }
 
+// if wayfair product page, scrape data
 if (window.location.href.includes('wayfair.com')) {
   let product_page;
   try {
@@ -298,7 +300,7 @@ if (window.location.href.includes('wayfair.com')) {
       mutations.forEach(function(mutation) {
         if (!mutation.addedNodes) return;
         for (let i=0; i < mutation.addedNodes.length; i++) {
-          if (mutation.addedNodes[i].id === 'dpi') {
+          if (mutation.addedNodes[i].className === 'adsbox') {
             scrape_data(wayfair_sku, 'wayfair');
           }
         }

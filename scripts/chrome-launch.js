@@ -5,7 +5,7 @@ const chromeLaunch = require('chrome-launch'); // eslint-disable-line import/no-
 
 require('colors');
 
-const url = 'https://www.wayfair.com/furniture/pdx/brayden-studio-manolla-tv-stand-for-tvs-up-to-78-w001300295.html';
+const url = 'https://www.wayfair.com/lighting/sb0/desk-lamps-c416505.html';
 const dev = path.resolve(__dirname, '..', 'dev');
 const args = [`--load-extension=${dev}`, '--auto-open-devtools-for-tabs'];
 

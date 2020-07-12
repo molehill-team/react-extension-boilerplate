@@ -45,14 +45,14 @@ function find_spec_element(match_type, site_name) {
 
   // set an array of strings to match to depending on if we're looking for dimensions or weight
   if (match_type === 'dimension') {
-    if (site_name === 'wayfair') {
+    if (site_name === 'wayfair' || site_name === 'wayfair-quick') {
       match_strings = ['Overall'];
     } else {
       match_strings = ['Product Dimensions', 'Package Dimensions', 'Size', 'Assembled Product Dimensions (L x W x H)'];  
     }
   } else if (match_type === 'weight') {
-    if (site_name === 'wayfair') {
-      match_strings = ['Overall Product Weight'];
+    if (site_name === 'wayfair' || site_name === 'wayfair-quick') {
+      match_strings = ['Overall Product Weight', 'Overall Weight'];
     } else {
       match_strings = ['Item Weight', 'Weight', 'Assembled Product Weight'];
     }
@@ -70,7 +70,6 @@ function find_spec_element(match_type, site_name) {
   for (let i = 0; i < all_elements.length; i++) {
     let element_text = getDirectLastText(all_elements[i]);
     if (element_text) {
-      // console.log(element_text);
       if (match_strings.includes(element_text.trim())) {
         match_elements.push(all_elements[i]);
       }
@@ -124,6 +123,11 @@ function scrape_data(prod_id, site_name) {
       break;
     case 'wayfair':
       product_title = document.getElementsByClassName('pl-Heading--pageTitle')[0].innerText;
+      div_bread_crumb = document.getElementsByClassName('Breadcrumbs-list')[0];
+      list_bread_crumb = div_bread_crumb;
+      break;
+    case 'wayfair-quick':
+      product_title = document.getElementsByClassName('QuickViewComponent')[0].getElementsByClassName('pl-Heading--pageTitle')[0].innerText;
       div_bread_crumb = document.getElementsByClassName('Breadcrumbs-list')[0];
       list_bread_crumb = div_bread_crumb;
       break;
@@ -212,13 +216,26 @@ function scrape_data(prod_id, site_name) {
     origin_text = undefined;
   }
 
+  // sourceURL -------------------------------------------------------------------------------------------------
+  let source_url;
+  if (site_name === 'wayfair-quick') {
+    let link_elements = document.getElementsByClassName('Button--primary');
+    for (let j=1; j < link_elements.length; j++) {
+      if (link_elements[j].innerText === 'See Full Details') {
+        source_url = link_elements[j].href;
+      }
+    } 
+  } else {
+    source_url = window.location.href;
+  }
+
   //  create and send http request to save data to DB ----------------------------------------------------------------
   const dimensionsIsAllZero = dimens_array.every(z => z === 0);
   createProduct({
     name: product_title.replace(/ /g, '_'),
     category: bread_crumbs.join(',').replace(/ /g, '_'),
     productId: prod_id,
-    sourceURL: window.location.href,
+    sourceURL: source_url,
     dimensions_mm: dimensionsIsAllZero ? undefined : dimens_array,
     weight_g: weight_float || undefined,
     source: window.location.hostname,
@@ -291,6 +308,7 @@ if (window.location.href.includes('wayfair.com')) {
     product_page = false;
   } 
   if (product_page) {
+
     // get wayfair SKU
     let wayfair_sku_text = document.getElementsByClassName('Breadcrumbs-item')[0].innerText;
     let wayfair_sku = wayfair_sku_text.slice(wayfair_sku_text.indexOf(' ') + 1, );
@@ -302,6 +320,38 @@ if (window.location.href.includes('wayfair.com')) {
         for (let i=0; i < mutation.addedNodes.length; i++) {
           if (mutation.addedNodes[i].className === 'adsbox') {
             scrape_data(wayfair_sku, 'wayfair');
+          }
+        }
+      });
+    });
+
+    // start observer
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: false,
+      characterData: false
+    });
+
+  } else {
+
+    // create observer to watch for quickview objects
+    let observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (!mutation.addedNodes) return;
+        for (let i=0; i < mutation.addedNodes.length; i++) {
+          if (mutation.addedNodes[i].className === 'ProductWeightsDimensions-list') {
+
+            // get wayfair SKU
+            let link_elements = document.getElementsByClassName('Button--primary');
+            for (let j=1; j < link_elements.length; j++) {
+              if (link_elements[j].innerText === 'See Full Details') {
+                let wayfair_sku_text = link_elements[j].href;
+                let wayfair_sku = wayfair_sku_text.match(/-[a-z]*[0-9]*.html/g)[0].slice(1, -5).toUpperCase();
+                scrape_data(wayfair_sku, 'wayfair-quick');
+              }
+            }
+
           }
         }
       });

@@ -1,5 +1,6 @@
 const { createProduct } = require('../shared/api');
 const { APP_URL } = require('../shared/resources');
+// const { ftruncate } = require('fs-extra');
 
 if (window.location.href.includes('checkout')) {
   console.log('checkedouted');
@@ -12,6 +13,21 @@ if (window.location.href.includes('checkout')) {
 }
 console.log(window.location.href);
 
+if (window.location.href.includes('https://secure.wayfair.com/v/checkout/onepage/view')) {
+  let button_elements, place_order_button;
+
+  button_elements = Array.from(document.getElementsByClassName('Button-content'));
+  for (let i = 0; i < button_elements.length; i++) {
+    if (getDirectLastText(button_elements[i]) === 'Place Your Order') {
+      place_order_button = button_elements[i];
+    }
+  }
+
+  if (place_order_button) {
+    scrape_cart('wayfair');
+  }
+}
+
 function getDirectLastText(ele) {
   let txt = null;
   [].forEach.call(ele.childNodes, function (v) {
@@ -21,6 +37,49 @@ function getDirectLastText(ele) {
 }
 
 let asin;
+
+function hasParentWithClassName(ele, className) {
+  if (ele.parentElement === null) {
+    return false;
+  } else if (ele.parentElement.className.includes(className)) {
+    return true;
+  } else {
+    return hasParentWithClassName(ele.parentElement, className);
+  }
+}
+
+function scrape_cart(site_name) {
+  let image_elements, cart_elements;
+
+  cart_elements = [];
+  image_elements = Array.from(document.getElementsByClassName('ImageComponent-image')).forEach(ele => {
+    if (hasParentWithClassName(ele, 'ConfirmationProductCard')) {
+      let prod_id = ele.src.match(/\/[A-W]+[0-9]+\./g)[0].slice(1,-1);
+      if (!cart_elements.includes(prod_id)) {
+        cart_elements.push(prod_id);
+      }
+    }
+  });
+
+  add_molehill_popup()
+}
+
+function add_molehill_popup() {
+  popup_div = document.createElement('div');
+
+  popup_div.style.position = 'fixed';
+  popup_div.style.top = '2%';
+  popup_div.style.height = '70%';
+  popup_div.style.width = '300px';
+  popup_div.style.right = '2%';
+  popup_div.style.backgroundColor = '#fcfcfc';
+  popup_div.style.borderRadius = '30px';
+  popup_div.style.border = '2px solid #0d0';
+
+  // header_div = document.createElement
+
+  document.body.appendChild(popup_div);
+}
 
 function convert_units_to_mm_or_g(unit, value) {
   let unit_dictionary = {'inches': 25.4, 'in': 25.4, 'inch': 25.4, 'ins': 25.4,
@@ -276,6 +335,26 @@ function add_molehill_button() {
   }
 }
 
+function add_observer(mutation_function) {
+  let observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (!mutation.addedNodes) return;
+      for (let i=0; i < mutation.addedNodes.length; i++) {
+        mutation_function(mutation.addedNodes[i]);
+      }
+    });
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: false,
+    characterData: false
+  });
+
+  return observer;
+}
+
 // look for ASIN in url
 const asin_reg_ex = /\/[A-Z0-9]{10}[/?]/;
 let asin_matches = window.location.href.match(asin_reg_ex);
@@ -307,6 +386,13 @@ if (window.location.href.includes('wayfair.com')) {
   } catch {
     product_page = false;
   } 
+
+  add_observer(node => {
+    if (node.className.includes('SidePanel')) {
+      console.log('Hello side panel');
+    }
+  });
+
   if (product_page) {
 
     // get wayfair SKU
@@ -314,55 +400,28 @@ if (window.location.href.includes('wayfair.com')) {
     let wayfair_sku = wayfair_sku_text.slice(wayfair_sku_text.indexOf(' ') + 1, );
 
     // create observer to find when page is fully loaded
-    let observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (!mutation.addedNodes) return;
-        for (let i=0; i < mutation.addedNodes.length; i++) {
-          if (mutation.addedNodes[i].className === 'adsbox') {
-            scrape_data(wayfair_sku, 'wayfair');
-          }
-        }
-      });
-    });
-
-    // start observer
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: false,
-      characterData: false
+    add_observer(node => {
+      if (node.className === 'adsbox') {
+        scrape_data(wayfair_sku, 'wayfair');
+      }
     });
 
   } else {
 
     // create observer to watch for quickview objects
-    let observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (!mutation.addedNodes) return;
-        for (let i=0; i < mutation.addedNodes.length; i++) {
-          if (mutation.addedNodes[i].className === 'ProductWeightsDimensions-list') {
-
-            // get wayfair SKU
-            let link_elements = document.getElementsByClassName('Button--primary');
-            for (let j=1; j < link_elements.length; j++) {
-              if (link_elements[j].innerText === 'See Full Details') {
-                let wayfair_sku_text = link_elements[j].href;
-                let wayfair_sku = wayfair_sku_text.match(/-[a-z]*[0-9]*.html/g)[0].slice(1, -5).toUpperCase();
-                scrape_data(wayfair_sku, 'wayfair-quick');
-              }
-            }
-
+    add_observer(node => {
+      if (node.className === 'ProductWeightsDimensions-list') {
+        // get wayfair SKU
+        let link_elements = document.getElementsByClassName('Button--primary');
+        for (let j=1; j < link_elements.length; j++) {
+          if (link_elements[j].innerText === 'See Full Details') {
+            let wayfair_sku_text = link_elements[j].href;
+            let wayfair_sku = wayfair_sku_text.match(/-[a-z]*[0-9]*.html/g)[0].slice(1, -5).toUpperCase();
+            scrape_data(wayfair_sku, 'wayfair-quick');
           }
         }
-      });
+      }
     });
 
-    // start observer
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      attributes: false,
-      characterData: false
-    });
   }
 }

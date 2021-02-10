@@ -21,10 +21,14 @@ const Login = ({
 
   return (
     <form onSubmit={onSubmit} className="molehill-login--form">
-      <label htmlFor="login-email--input">email</label>
-      <input type="email" id="login-email--input" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
-      <label htmlFor="login-password--input">password</label>
-      <input type="password" id="login-password--input" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
+      <div>
+        <label htmlFor="login-email--input">email</label>
+        <input type="email" id="login-email--input" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} />
+      </div>
+      <div>
+        <label htmlFor="login-password--input">password</label>
+        <input type="password" id="login-password--input" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} />
+      </div>
       <button type="submit" onClick={onSubmit}>Login</button>
       <div>don't have an account? <a className="molehill-auth-change-flow" onClick={onToggleFlow}>Create one</a> to get started</div>
     </form>
